@@ -1,29 +1,24 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 
-from tkinter import *
-import tkinter.messagebox as messagebox
+import logging; logging.basicConfig(level=logging.INFO)
 
-class Application(Frame):
-    def __init__(self, master=None):
-        Frame.__init__(self, master)
-        self.pack()
-        self.createWidgets()
+import asyncio, os, json, time
+from datetime import datetime
 
-    def createWidgets(self):
-        self.helloLabel = Label(self, text='Hello world.')
-        self.helloLabel.pack()
-        self.nameInput = Entry(self)
-        self.nameInput.pack()
-        self.alertButton = Button(self, text='Hello', command=self.hello)
-        self.alertButton.pack()
-        self.quitButton = Button(self, text='Quit', command=self.quit)
-        self.quitButton.pack()
+from aiohttp import web
 
-    def hello(self):
-        name = self.nameInput.get() or 'world'
-        messagebox.showinfo('Message', 'Hello, %s' % name)
+def index(request):
+    return web.Response(body=b'<h1>Awesome</h1>')
 
-app = Application()
-app.master.title("The first App")
-app.mainloop()
+@asyncio.coroutine
+def init(loop):
+    app = web.Application(loop=loop)
+    app.router.add_route('GET', '/', index)
+    srv = yield from loop.create_server(app.make_handler(), '127.0.0.1', 9000)
+    logging.info('server started at http://127.0.0.1:9000....')
+    return srv
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(init(loop))
+loop.run_forever()
