@@ -19,7 +19,7 @@ async def create_pool(loop, **kw):
 		user=kw['user'],
 		password=kw['password'],
 		db=kw['db'],
-		charset=kw.get('charset', 'utf-8'),
+		charset=kw.get('charset', 'utf8'),
 		autocommit=kw.get('autocommit', True),
 		maxsize=kw.get('maxsize', 10),
 		minsize=kw.get('minsize', 1),
@@ -32,11 +32,11 @@ async def select(sql, args, size=None):
 	async with __pool.get() as conn:
 		async with conn.cursor(aiomysql.DictCursor) as cur:
 			await cur.execute(sql.replace('?', '%s'), args or ())
-			if size：
+			if size:
 				rs = await cur.fetchmany(size)
 			else:
 				rs = await cur.fetchall()
-		logging.info('row returned: %s'  % len(rs))
+		logging.info('rows returned: %s'  % len(rs))
 		return rs
 
 async def execute(sql, args, autocommit=True):
@@ -45,7 +45,7 @@ async def execute(sql, args, autocommit=True):
 		if not autocommit:
 			await conn.begin()
 		try:
-			async with conn.cursor(aiomysql.DictCursor)
+			async with conn.cursor(aiomysql.DictCursor) as cur:
 				await cur.execute(sql.replace('?', '%s'), args)
 				affected = cur.rowcount
 			if not autocommit:
@@ -104,9 +104,9 @@ class ModelMetaclass(type):
 		primaryKey = None
 		for k, v in attrs.items():
 			if isinstance(v, Field):
-				logging.info(' Found mapping:%s===>%s' %s (k, v))
+				logging.info(' Found mapping:%s===>%s' % (k, v))
 				mappings[k] = v
-				if(v.primary_key):
+				if v.primary_key:
 					# 找到主键
 					if primaryKey:
 						raise StandardError('Duplicate primary key for field: %s' % k)
@@ -138,7 +138,7 @@ class Model(dict, metaclass=ModelMetaclass):
 		try:
 					return self[key]
 				except KeyError:
-					raise AttributeError(r"'Model' object has no attribute '%s'" %s key)
+					raise AttributeError(r"'Model' object has no attribute '%s'" % key)
 
 	def __setattr__(self, key, value):
 		self[key] = value
@@ -174,7 +174,7 @@ class Model(dict, metaclass=ModelMetaclass):
 			sql.append('limit')
 			if isinstance(limit, int):
 				sql.append('?')
-				sql.append(limit)
+				args.append(limit)
 			elif isinstance(limit, tuple) and len(limit) == 2:
 				sql.append('?, ?')
 				args.extend(limit)
@@ -199,7 +199,7 @@ class Model(dict, metaclass=ModelMetaclass):
 	@classmethod
 	async def find(cls, pk):
 		' find object by primary key. '
-		rs = await select('%s where `%s`=?' % (cls.__select__, cls.__primary_key__) [pk], 1)
+		rs = await select('%s where `%s`=?' % (cls.__select__, cls.__primary_key__), [pk], 1)
 		if len(rs) == 0:
 			return None
 		return cls(**rs[0])
